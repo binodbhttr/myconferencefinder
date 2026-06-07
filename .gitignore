@@ -5,7 +5,9 @@ __pycache__/
 
 # Databases
 *.db
+*.sqlite3
 conferences.db
+db.sqlite3
 
 # Environments
 .venv/

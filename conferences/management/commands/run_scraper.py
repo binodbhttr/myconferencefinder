@@ -1,12 +1,13 @@
 import os
 import json
-import sqlite3
 import requests
 from datetime import datetime
+from django.core.management.base import BaseCommand
 from google import genai
 from google.genai import types
+from conferences.models import Conference
 
-# Suspect words and domains for the local heuristic evaluation (fallback)
+# Suspect markers for local heuristic simulation fallback
 SUSPICIOUS_DOMAINS = ['.biz', '.xyz', '.cc', '.info', '.click', '.top', '.win']
 SUSPICIOUS_KEYWORDS = [
     'double your money', 'double your crypto', 'guaranteed publication', 
@@ -15,13 +16,9 @@ SUSPICIOUS_KEYWORDS = [
 ]
 
 def evaluate_conference_heuristic(title, url, location, description, domain):
-    """
-    Local heuristic classifier to simulate AI validation when GEMINI_API_KEY is not set.
-    """
     flagged = False
     reasons = []
 
-    # Check url domain
     url_lower = url.lower()
     for domain_ext in SUSPICIOUS_DOMAINS:
         if domain_ext in url_lower:
@@ -29,14 +26,12 @@ def evaluate_conference_heuristic(title, url, location, description, domain):
             reasons.append(f"Suspicious top-level domain ({domain_ext})")
             break
 
-    # Check description keywords
     desc_lower = description.lower()
     for keyword in SUSPICIOUS_KEYWORDS:
         if keyword in desc_lower:
             flagged = True
             reasons.append(f"Suspicious phrasing detected: '{keyword}'")
 
-    # Check for suspicious combinations
     if "free" in desc_lower and ("credit card" in desc_lower or "bank account" in desc_lower):
         flagged = True
         reasons.append("Promisory free event asking for credit/bank details")
@@ -56,12 +51,9 @@ def evaluate_conference_heuristic(title, url, location, description, domain):
 
 
 def evaluate_conference_ai(title, url, location, description, domain):
-    """
-    Calls the Gemini API to verify the conference, falling back to heuristics if the API key is missing.
-    """
+    """Verifies conference credibility via Gemini AI, falling back to heuristics if API key is absent."""
     api_key = os.environ.get("GEMINI_API_KEY")
     if not api_key:
-        print("[AI Classifier] GEMINI_API_KEY not found. Using local heuristic evaluation.")
         return evaluate_conference_heuristic(title, url, location, description, domain)
 
     try:
@@ -88,7 +80,6 @@ def evaluate_conference_ai(title, url, location, description, domain):
         5. Inconsistent dates or extremely short timelines.
         6. Vague registration paths asking for banking/credit cards without proper standard SSL forms.
         """
-        
         response = client.models.generate_content(
             model='gemini-2.5-flash',
             contents=prompt,
@@ -96,7 +87,6 @@ def evaluate_conference_ai(title, url, location, description, domain):
                 response_mime_type="application/json"
             )
         )
-        
         data = json.loads(response.text)
         return bool(data.get("flagged")), data.get("reason", "Verified by Gemini AI.")
     except Exception as e:
@@ -105,10 +95,6 @@ def evaluate_conference_ai(title, url, location, description, domain):
 
 
 def fetch_scraped_conferences():
-    """
-    Fetches conferences from real public JSON lists, and generates rich domain list.
-    Also injects a few suspicious mock listings to test AI flagging and Admin Approval.
-    """
     confs = []
 
     # 1. Attempt to scrape real JS conferences from confs.tech github repo
@@ -118,7 +104,6 @@ def fetch_scraped_conferences():
         response = requests.get(url, timeout=5)
         if response.status_code == 200:
             data = response.json()
-            # Sort and pick the first 10 for demonstration
             for item in data[:10]:
                 confs.append({
                     "title": item.get("name"),
@@ -126,7 +111,7 @@ def fetch_scraped_conferences():
                     "start_date": item.get("startDate"),
                     "end_date": item.get("endDate"),
                     "location": f"{item.get('city')}, {item.get('country')}" if item.get("city") else "Online",
-                    "description": f"A premier developer event for Javascript and Web Technologies. Featuring core talks on frameworks, performance, and the future of JS.",
+                    "description": "A premier developer event for Javascript and Web Technologies. Featuring core talks on frameworks, performance, and the future of JS.",
                     "url": item.get("url"),
                     "source": "confs.tech"
                 })
@@ -136,7 +121,6 @@ def fetch_scraped_conferences():
 
     # 2. Add realistic, high-quality conferences for other domains
     mock_domains_confs = [
-        # Technology (extra)
         {
             "title": "International Conference on Machine Learning (ICML) 2026",
             "domain": "Technology",
@@ -147,7 +131,6 @@ def fetch_scraped_conferences():
             "url": "https://icml.cc/Conferences/2026",
             "source": "Symposium List"
         },
-        # Medicine
         {
             "title": "Global Oncology Summit 2026",
             "domain": "Medicine",
@@ -168,7 +151,6 @@ def fetch_scraped_conferences():
             "url": "https://worldcardiology2026.ch",
             "source": "Medical Calendar"
         },
-        # Science
         {
             "title": "International Astrophysics Colloquium 2026",
             "domain": "Science",
@@ -189,7 +171,6 @@ def fetch_scraped_conferences():
             "url": "https://quantumforum2026.de",
             "source": "Physics Society"
         },
-        # Finance
         {
             "title": "Global Fintech & Banking Summit 2026",
             "domain": "Finance",
@@ -200,7 +181,6 @@ def fetch_scraped_conferences():
             "url": "https://fintechbankingsummit.co.uk",
             "source": "Fintech Feed"
         },
-        # Art
         {
             "title": "Biennale of Digital Art & Creative Technology",
             "domain": "Art",
@@ -211,8 +191,6 @@ def fetch_scraped_conferences():
             "url": "https://digitalartbiennale.fr",
             "source": "Creative Art Hub"
         },
-        
-        # --- SUSPICIOUS LISTINGS (Red Flagged) ---
         {
             "title": "World Double-Your-Money & Web3 Crypto Fortune Summit",
             "domain": "Finance",
@@ -239,61 +217,68 @@ def fetch_scraped_conferences():
     return confs
 
 
-def run_scraping_cycle(db_path):
-    """
-    Main job that runs the scraping, executes AI evaluation, and inserts records into the database.
-    """
-    print(f"[Scrape Job] Starting scraping cycle at {datetime.now()}...")
-    raw_confs = fetch_scraped_conferences()
-    
-    conn = sqlite3.connect(db_path)
-    cursor = conn.cursor()
-    
-    new_count = 0
-    flagged_count = 0
-    
-    for conf in raw_confs:
-        title = conf["title"]
-        url = conf["url"]
+class Command(BaseCommand):
+    help = "Crawls the web for conferences, screens them using Gemini AI, and syncs to SQLite via ORM."
+
+    def handle(self, *args, **options):
+        self.stdout.write(self.style.NOTICE("[Scrape Job] Starting Django scrape execution..."))
         
-        # Check if conference already exists by checking the URL and title
-        cursor.execute("SELECT id FROM conferences WHERE url = ? OR (title = ? AND start_date = ?)", (url, title, conf["start_date"]))
-        exists = cursor.fetchone()
-        
-        if not exists:
-            # Evaluate using AI/heuristics
-            flagged, ai_reason = evaluate_conference_ai(
-                title=title,
-                url=url,
-                location=conf["location"],
-                description=conf["description"],
-                domain=conf["domain"]
-            )
+        raw_confs = fetch_scraped_conferences()
+        new_count = 0
+        flagged_count = 0
+
+        for conf in raw_confs:
+            title = conf["title"]
+            url = conf["url"]
             
-            # If AI flags it, it starts as unverified (verified = 0) and flagged = 1
-            # If AI passes it, it starts as unverified (verified = 0) and flagged = 0.
-            # But it goes live on the index page immediately because it is clean.
-            # (If admins want to officially vouch for a clean post, they can verify it, setting verified = 1).
-            # If flagged = 1, it is HIDDEN from the main list until an admin approves it.
-            verified = 0
+            # Parse Dates safely
+            start_date = None
+            if conf.get("start_date"):
+                try:
+                    start_date = datetime.strptime(conf.get("start_date"), "%Y-%m-%d").date()
+                except ValueError:
+                    pass
+                    
+            end_date = None
+            if conf.get("end_date"):
+                try:
+                    end_date = datetime.strptime(conf.get("end_date"), "%Y-%m-%d").date()
+                except ValueError:
+                    pass
+
+            # Check if duplicate exists
+            exists = Conference.objects.filter(url=url).exists() or \
+                     Conference.objects.filter(title=title, start_date=start_date).exists()
             
-            cursor.execute("""
-                INSERT INTO conferences (
-                    title, domain, start_date, end_date, location, description, 
-                    url, source, verified, flagged, ai_reason, upvotes, downvotes, created_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, ?)
-            """, (
-                title, conf["domain"], conf["start_date"], conf["end_date"], 
-                conf["location"], conf["description"], url, conf["source"],
-                verified, 1 if flagged else 0, ai_reason, datetime.now().isoformat()
-            ))
-            
-            new_count += 1
-            if flagged:
-                flagged_count += 1
+            if not exists:
+                flagged, ai_reason = evaluate_conference_ai(
+                    title=title,
+                    url=url,
+                    location=conf["location"],
+                    description=conf["description"],
+                    domain=conf["domain"]
+                )
                 
-    conn.commit()
-    conn.close()
-    
-    print(f"[Scrape Job] Cycle completed. Added {new_count} new conferences. Flagged {flagged_count} for review.")
-    return new_count, flagged_count
+                Conference.objects.create(
+                    title=title,
+                    domain=conf["domain"],
+                    start_date=start_date,
+                    end_date=end_date,
+                    location=conf["location"],
+                    description=conf["description"],
+                    url=url,
+                    source=conf["source"],
+                    verified=False,
+                    flagged=flagged,
+                    ai_reason=ai_reason
+                )
+                new_count += 1
+                if flagged:
+                    flagged_count += 1
+
+        self.stdout.write(self.style.SUCCESS(
+            f"[Scrape Job] Finished. Added {new_count} new entries, flagged {flagged_count} suspect listings."
+        ))
+        
+        # Save output in standard command result structure
+        return f"{new_count},{flagged_count}"
