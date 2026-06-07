@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Conferenza Admin Dashboard - AI Flag Verification</title>
+    <meta name="description" content="Review conferences flagged for scam or predatory profiles by AI. Manually trigger scraping updates.">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Custom Stylesheet -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="background-glows">
+        <div class="glow glow-1"></div>
+        <div class="glow glow-3"></div>
+    </div>
+
+    <!-- Navigation Header -->
+    <header class="navbar">
+        <div class="nav-container">
+            <a href="/" class="nav-logo" id="nav-logo-link">
+                <i class="fa-solid fa-compass logo-icon"></i>
+                <span>Conferenza <span class="badge admin-badge">Admin</span></span>
+            </a>
+            <nav class="nav-menu">
+                <a href="/" class="nav-link" id="nav-home-link"><i class="fa-solid fa-arrow-left"></i> Back to Directory</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="main-content">
+        <!-- Hero section -->
+        <section class="hero-section">
+            <h1 class="hero-title">Admin Review Panel</h1>
+            <p class="hero-subtitle">Vetting listings flagged by AI heuristics to protect directory integrity.</p>
+        </section>
+
+        <!-- Scraper Control Dashboard -->
+        <section class="scraper-dashboard glass-panel">
+            <div class="scraper-status-info">
+                <h3><i class="fa-solid fa-robot header-accent-icon"></i> Scraper Control Center</h3>
+                <p>The automated scraper runs daily at <strong>00:00 (Midnight)</strong>. You can trigger a manual scrape cycle here to fetch new listings immediately.</p>
+                <div class="env-banner">
+                    <span id="ai-mode-status"><i class="fa-solid fa-circle-dot mode-indicator-green"></i> Loading model state...</span>
+                </div>
+            </div>
+            <div class="scraper-action-container">
+                <button id="trigger-scrape-btn" class="primary-btn pulse-button">
+                    <i class="fa-solid fa-cloud-arrow-down"></i> Trigger Scrape Now
+                </button>
+            </div>
+        </section>
+
+        <!-- Flagged Reviews Container -->
+        <section class="admin-reviews-section">
+            <div class="listings-header">
+                <h2>Pending AI Flags (<span id="flagged-count-badge">0</span>)</h2>
+            </div>
+
+            <!-- Loader -->
+            <div id="admin-loader" class="loader-container">
+                <div class="spinner"></div>
+                <p>Loading pending reviews...</p>
+            </div>
+
+            <!-- Empty State -->
+            <div id="admin-empty-state" class="empty-state hidden">
+                <div class="clean-shield-icon">
+                    <i class="fa-solid fa-shield-cat"></i>
+                </div>
+                <h3>All Clear!</h3>
+                <p>No pending flagged conferences require review. AI heuristics cleared all active listings.</p>
+            </div>
+
+            <!-- Flagged listings list -->
+            <div id="flagged-list" class="flagged-list">
+                <!-- Injected dynamically via JS -->
+            </div>
+        </section>
+    </main>
+
+    <!-- Toast Notification Container -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <footer class="footer">
+        <p>&copy; 2026 Conferenza. Admin security panel. Secure connection enabled.</p>
+    </footer>
+
+    <!-- Frontend JS -->
+    <script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>

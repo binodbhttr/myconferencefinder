@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Conferenza - Global Verified Conference Finder</title>
+    <meta name="description" content="Discover, search, and vote on authentic global conferences in technology, science, medicine, finance, and art. AI-validated and community-vetted listings.">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Custom Stylesheet -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="background-glows">
+        <div class="glow glow-1"></div>
+        <div class="glow glow-2"></div>
+    </div>
+
+    <!-- Navigation Header -->
+    <header class="navbar">
+        <div class="nav-container">
+            <a href="/" class="nav-logo" id="nav-logo-link">
+                <i class="fa-solid fa-compass logo-icon"></i>
+                <span>Conferenza</span>
+            </a>
+            <nav class="nav-menu">
+                <a href="/" class="nav-link active" id="nav-home-link"><i class="fa-solid fa-globe"></i> Directory</a>
+                <a href="/admin" class="nav-link admin-btn" id="nav-admin-link"><i class="fa-solid fa-lock"></i> Admin Panel</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="main-content">
+        <!-- Hero section -->
+        <section class="hero-section">
+            <h1 class="hero-title">Global Conference Directory</h1>
+            <p class="hero-subtitle">Vetted by AI. Verified by Admins. Voted by the Community.</p>
+        </section>
+
+        <!-- Search and Filter Panel -->
+        <section class="control-panel glass-panel">
+            <div class="search-box">
+                <i class="fa-solid fa-magnifying-glass search-icon"></i>
+                <input type="text" id="search-input" placeholder="Search by conference name, keyword, or city..." aria-label="Search conferences">
+                <button id="clear-search" class="clear-btn" aria-label="Clear search"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            
+            <div class="domain-filters" role="tablist" aria-label="Domain categories">
+                <button class="filter-chip active" data-domain="All" role="tab" aria-selected="true" id="domain-all-tab">
+                    <i class="fa-solid fa-border-all"></i> All Domains
+                </button>
+                <button class="filter-chip" data-domain="Technology" role="tab" aria-selected="false" id="domain-tech-tab">
+                    <i class="fa-solid fa-laptop-code"></i> Technology
+                </button>
+                <button class="filter-chip" data-domain="Science" role="tab" aria-selected="false" id="domain-science-tab">
+                    <i class="fa-solid fa-atom"></i> Science
+                </button>
+                <button class="filter-chip" data-domain="Medicine" role="tab" aria-selected="false" id="domain-medicine-tab">
+                    <i class="fa-solid fa-stethoscope"></i> Medicine
+                </button>
+                <button class="filter-chip" data-domain="Finance" role="tab" aria-selected="false" id="domain-finance-tab">
+                    <i class="fa-solid fa-chart-line"></i> Finance
+                </button>
+                <button class="filter-chip" data-domain="Art" role="tab" aria-selected="false" id="domain-art-tab">
+                    <i class="fa-solid fa-palette"></i> Art
+                </button>
+            </div>
+        </section>
+
+        <!-- Conference Listings -->
+        <section class="listings-section">
+            <div class="listings-header">
+                <h2 id="listings-count-text">Loading conferences...</h2>
+                <div class="legend">
+                    <span class="legend-item"><i class="fa-solid fa-shield-halved verified-color"></i> Admin Verified</span>
+                </div>
+            </div>
+
+            <!-- Loader -->
+            <div id="loader" class="loader-container">
+                <div class="spinner"></div>
+                <p>Retrieving authentic event logs...</p>
+            </div>
+
+            <!-- Empty State -->
+            <div id="empty-state" class="empty-state hidden">
+                <i class="fa-solid fa-calendar-minus empty-icon"></i>
+                <h3>No Conferences Found</h3>
+                <p>Try refining your search text or choosing a different domain filter.</p>
+            </div>
+
+            <!-- Cards Container -->
+            <div id="conferences-grid" class="conferences-grid">
+                <!-- Cards injected dynamically via JS -->
+            </div>
+        </section>
+    </main>
+
+    <!-- Toast Notification Container -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <footer class="footer">
+        <p>&copy; 2026 Conferenza. All rights reserved. Automated scraper running daily at midnight.</p>
+    </footer>
+
+    <!-- Frontend JS -->
+    <script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>
